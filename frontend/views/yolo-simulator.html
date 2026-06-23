@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLO Traffic Simulator</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0f172a;
+    color: white;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 320px auto 320px;
+    height: 100vh;
+}
+
+/* LEFT PANEL */
+
+.panel {
+    background: #111827;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #1f2937;
+}
+
+.panel h2 {
+    margin-bottom: 15px;
+    color: #60a5fa;
+}
+
+.direction {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #1f2937;
+    border-radius: 10px;
+}
+
+.direction h3 {
+    margin-bottom: 10px;
+    color: #22c55e;
+}
+
+.move {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.move button {
+    padding: 4px 10px;
+    border: none;
+    border-radius: 5px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+.move button:hover {
+    background: #1d4ed8;
+}
+
+.count {
+    width: 30px;
+    text-align: center;
+}
+
+/* INTERSECTION */
+
+.intersection {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.road-vertical {
+    position: absolute;
+    width: 160px;
+    height: 100%;
+    background: #374151;
+}
+
+.road-horizontal {
+    position: absolute;
+    height: 160px;
+    width: 100%;
+    background: #374151;
+}
+
+.center-box {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    background: #1f2937;
+    border: 3px solid #4b5563;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 18px;
+}
+
+/* TOTAL COUNTS */
+
+.total {
+    position: absolute;
+    background: #020617;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #374151;
+}
+
+.north { top: 20px; }
+.south { bottom: 20px; }
+.east { right: 20px; }
+.west { left: 20px; }
+
+/* RIGHT PANEL */
+
+.server input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: none;
+}
+
+.server button {
+    width: 100%;
+    padding: 8px;
+    background: #16a34a;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.status {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.logs {
+    background: black;
+    height: 260px;
+    overflow-y: auto;
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LEFT PANEL -->
+
+<div class="panel">
+
+<h2>YOLO Movement Controls</h2>
+
+<!-- NORTH -->
+<div class="direction">
+<h3>North</h3>
+
+<div class="move">Left
+<div>
+<button onclick="add('north','left')">+</button>
+<span class="count" id="north_left">0</span>
+<button onclick="remove('north','left')">-</button>
+</div>
+</div>
+
+<div class="move">Straight
+<div>
+<button onclick="add('north','straight')">+</button>
+<span class="count" id="north_straight">0</span>
+<button onclick="remove('north','straight')">-</button>
+</div>
+</div>
+
+<div class="move">Right
+<div>
+<button onclick="add('north','right')">+</button>
+<span class="count" id="north_right">0</span>
+<button onclick="remove('north','right')">-</button>
+</div>
+</div>
+
+</div>
+
+<!-- SOUTH -->
+<div class="direction">
+<h3>South</h3>
+
+<div class="move">Left
+<div>
+<button onclick="add('south','left')">+</button>
+<span class="count" id="south_left">0</span>
+<button onclick="remove('south','left')">-</button>
+</div>
+</div>
+
+<div class="move">Straight
+<div>
+<button onclick="add('south','straight')">+</button>
+<span class="count" id="south_straight">0</span>
+<button onclick="remove('south','straight')">-</button>
+</div>
+</div>
+
+<div class="move">Right
+<div>
+<button onclick="add('south','right')">+</button>
+<span class="count" id="south_right">0</span>
+<button onclick="remove('south','right')">-</button>
+</div>
+</div>
+
+</div>
+
+<!-- EAST -->
+<div class="direction">
+<h3>East</h3>
+
+<div class="move">Left
+<div>
+<button onclick="add('east','left')">+</button>
+<span class="count" id="east_left">0</span>
+<button onclick="remove('east','left')">-</button>
+</div>
+</div>
+
+<div class="move">Straight
+<div>
+<button onclick="add('east','straight')">+</button>
+<span class="count" id="east_straight">0</span>
+<button onclick="remove('east','straight')">-</button>
+</div>
+</div>
+
+<div class="move">Right
+<div>
+<button onclick="add('east','right')">+</button>
+<span class="count" id="east_right">0</span>
+<button onclick="remove('east','right')">-</button>
+</div>
+</div>
+
+</div>
+
+<!-- WEST -->
+<div class="direction">
+<h3>West</h3>
+
+<div class="move">Left
+<div>
+<button onclick="add('west','left')">+</button>
+<span class="count" id="west_left">0</span>
+<button onclick="remove('west','left')">-</button>
+</div>
+</div>
+
+<div class="move">Straight
+<div>
+<button onclick="add('west','straight')">+</button>
+<span class="count" id="west_straight">0</span>
+<button onclick="remove('west','straight')">-</button>
+</div>
+</div>
+
+<div class="move">Right
+<div>
+<button onclick="add('west','right')">+</button>
+<span class="count" id="west_right">0</span>
+<button onclick="remove('west','right')">-</button>
+</div>
+</div>
+
+</div>
+
+</div>
+
+<!-- INTERSECTION -->
+
+<div class="intersection">
+
+<div class="road-vertical"></div>
+<div class="road-horizontal"></div>
+
+<div class="center-box">
+YOLO Traffic Simulator<br>
+Movement Based<br>
+8 Phase Ready
+</div>
+
+<div class="total north">North Total: <span id="north_total">0</span></div>
+<div class="total south">South Total: <span id="south_total">0</span></div>
+<div class="total east">East Total: <span id="east_total">0</span></div>
+<div class="total west">West Total: <span id="west_total">0</span></div>
+
+</div>
+
+<!-- RIGHT PANEL -->
+
+<div class="panel">
+
+<h2>Server Connection</h2>
+
+<div class="server">
+<input type="text" id="serverUrl" value="http://localhost:5000/api/traffic">
+<button onclick="connect()">Connect</button>
+</div>
+
+<div class="status" id="status">Not Connected</div>
+
+<h2>Traffic Controller</h2>
+<div class="status">Phase: <span id="phase">0</span></div>
+<div class="status">Green Time: <span id="green">0</span> sec</div>
+
+<h2>YOLO Logs</h2>
+<div class="logs" id="logs"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let data = {
+    north:{left:0,straight:0,right:0},
+    south:{left:0,straight:0,right:0},
+    east:{left:0,straight:0,right:0},
+    west:{left:0,straight:0,right:0}
+};
+
+let server = "";
+let connected = false;
+
+/* ADD */
+function add(dir,move){
+    data[dir][move]++;
+    update();
+}
+
+/* REMOVE */
+function remove(dir,move){
+    if(data[dir][move] > 0){
+        data[dir][move]--;
+    }
+    update();
+}
+
+/* UPDATE UI */
+function update(){
+
+    for(let d in data){
+        for(let m in data[d]){
+            document.getElementById(d+"_"+m).innerText = data[d][m];
+        }
+    }
+
+    document.getElementById("north_total").innerText =
+        data.north.left + data.north.straight + data.north.right;
+
+    document.getElementById("south_total").innerText =
+        data.south.left + data.south.straight + data.south.right;
+
+    document.getElementById("east_total").innerText =
+        data.east.left + data.east.straight + data.east.right;
+
+    document.getElementById("west_total").innerText =
+        data.west.left + data.west.straight + data.west.right;
+}
+
+/* CONNECT */
+
+function connect(){
+
+    server = document.getElementById("serverUrl").value;
+
+    if(server === ""){
+        alert("Enter server URL");
+        return;
+    }
+
+    connected = true;
+    document.getElementById("status").innerText = "Connected to " + server;
+    log("Connected to server");
+}
+
+/* LOG */
+
+function log(msg){
+    let logs = document.getElementById("logs");
+    let time = new Date().toLocaleTimeString();
+    logs.innerHTML += "["+time+"] "+msg+"<br>";
+    logs.scrollTop = logs.scrollHeight;
+}
+
+/* YOLO SENDS DATA EVERY 1 SECOND */
+
+setInterval(()=>{
+
+    if(!connected) return;
+
+    fetch(server + "/yolo",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify(data)
+    })
+    .then(()=> log("YOLO → Server Data Sent"))
+    .catch(()=> log("Send Error"));
+
+},1000);
+
+/* RECEIVE ESP32 UPDATE */
+
+setInterval(()=>{
+
+    if(!connected) return;
+
+    fetch(server + "/update")
+    .then(res=>res.json())
+    .then(response=>{
+
+        if(!response) return;
+
+        data = {
+            north: response.north,
+            south: response.south,
+            east: response.east,
+            west: response.west
+        };
+
+        update();
+
+        document.getElementById("phase").innerText = response.phase || 0;
+        document.getElementById("green").innerText = response.greenTime || 0;
+
+        log("ESP32 → Simulator Update Received");
+
+    })
+    .catch(()=> log("Update Error"));
+
+},2000);
+
+update();
+
+</script>
+
+</body>
+</html>

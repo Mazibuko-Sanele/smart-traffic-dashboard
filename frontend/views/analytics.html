@@ -1,0 +1,163 @@
+<!-- frontend/views/analytics.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Analytics | Real time Traffic Optimizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="/css/analytics.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">
+      <div class="logo-icon">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <h1>Real time Traffic Optimizer</h1>
+    </div>
+    <div class="nav-links">
+      <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+      <a href="/analytics" class="active"><i class="fas fa-chart-pie"></i> Analytics</a>
+
+      <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
+      <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span>LIVE DATA</span>
+    </div>
+  </nav>
+
+
+  <main class="container">
+
+    <!-- TRAFFIC FLOW TREND CHART - FULL WIDTH ROW -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <div class="card-title"><i class="fas fa-chart-line"></i> TRAFFIC FLOW TREND</div>
+        <div class="time-filter">
+          <button class="tfbtn" data-range="1">1h</button>
+          <button class="tfbtn active" data-range="6">6h</button>
+          <button class="tfbtn" data-range="12">12h</button>
+          <button class="tfbtn" data-range="24">24h</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="flowTrendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ROW 1: AI vs FIXED MODE + EMERGENCY DASHBOARD -->
+    <div class="two-columns">
+      
+          <!-- AI vs FIXED MODE COMPARISON -->
+<div class="card" id="comparison-card">
+  <div class="card-header">
+    <div class="card-title"><i class="fas fa-chart-simple"></i> AI vs FIXED MODE COMPARISON</div>
+    <span class="trust-score" id="comparison-period">Live Tracking</span>
+  </div>
+  
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Lane</th>
+        <th>Dynamic AI</th>
+        <th>Fixed Cycle</th>
+        <th>Saved (this phase)</th>
+      </tr>
+    </thead>
+    <tbody id="comparison-tbody">
+      <tr><td colspan="4" style="text-align: center;">Loading comparison data...</td></tr>
+    </tbody>
+    <tfoot>
+      <tr style="border-top: 2px solid var(--border);">
+        <td colspan="3"><strong>💰 TOTAL TIME SAVED</strong></td>
+        <td id="total-time-saved"><strong>0s</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+  
+  <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 8px;">
+    <i class="fas fa-lightbulb" style="color: var(--warning);"></i>
+    <span style="font-size: 0.8rem;" id="ai-tip">
+      Dynamic mode saves time by giving less green when traffic is light. 
+      Each completed green phase shows savings compared to fixed cycle.
+    </span>
+  </div>
+</div>
+
+
+      <!-- EMERGENCY RESPONSE DASHBOARD -->
+       <!-- EMERGENCY RESPONSE DASHBOARD -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="fas fa-ambulance"></i> EMERGENCY RESPONSE DASHBOARD</div>
+  </div>
+  
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+    <div class="emergency-stat">
+      <div style="font-size: 0.7rem; color: var(--text-muted);">🚑 TOTAL EMERGENCIES</div>
+      <div style="font-size: 2rem; font-weight: 700; color: var(--danger);" id="emergency-total">0</div>
+    </div>
+    <div class="emergency-stat">
+      <div style="font-size: 0.7rem; color: var(--text-muted);">⏱️ TOTAL INTERRUPTION</div>
+      <div style="font-size: 1.8rem; font-weight: 700; color: var(--warning);" id="total-interruption-all">0<span style="font-size: 0.8rem;">s</span></div>
+    </div>
+  </div>
+  
+  <div id="emergency-list" style="margin-bottom: 1rem;">
+    <div style="text-align: center; padding: 1rem; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px;">No active emergency</div>
+  </div>
+  
+  <div class="time-wasted-card" style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <div style="font-size: 0.7rem;"><i class="fas fa-hourglass-start"></i> REAL-TIME INTERRUPTION</div>
+      <div class="time-wasted-value" id="live-interruption-seconds" style="font-size: 1.2rem;">0<span style="font-size: 0.7rem;">s</span></div>
+    </div>
+    <div class="congestion-level">
+      <div class="congestion-fill" id="live-interruption-bar" style="width: 0%; background: var(--danger); height: 8px;"></div>
+    </div>
+    <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 6px;">⚠️ Current interruption duration on the affected lane</div>
+  </div>
+  
+  <div style="margin-top: 1rem;">
+    <div class="card-title" style="margin-bottom: 0.75rem;"><i class="fas fa-chart-simple"></i> INTERRUPTION PER LANE (seconds stolen)</div>
+    <div id="lane-interruption-table" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+      <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 0.75rem; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--text-muted);">NORTH</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="interruption-north">0</div>
+        <div style="font-size: 0.6rem;">seconds</div>
+      </div>
+      <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 0.75rem; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--text-muted);">EAST</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="interruption-east">0</div>
+        <div style="font-size: 0.6rem;">seconds</div>
+      </div>
+      <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 0.75rem; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--text-muted);">SOUTH</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="interruption-south">0</div>
+        <div style="font-size: 0.6rem;">seconds</div>
+      </div>
+      <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 0.75rem; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--text-muted);">WEST</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="interruption-west">0</div>
+        <div style="font-size: 0.6rem;">seconds</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+  </main>
+
+  <script src="/js/analytics.js"></script>
+</body>
+</html>

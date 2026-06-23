@@ -1,0 +1,13 @@
+main {
+    padding: 30px;
+}
+.btn-primary {
+    background: #0a84ff;
+    padding: 12px 22px;
+    color: white;
+    border-radius: 6px;
+}
+.home-hero {
+    text-align: center;
+    padding: 80px 20px;
+}

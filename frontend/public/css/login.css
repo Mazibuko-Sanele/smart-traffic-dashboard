@@ -1,0 +1,153 @@
+body {
+  margin: 0;
+  background: #0f1117;
+  font-family: Arial, sans-serif;
+}
+
+.login-container {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 36px 32px;
+  background: #1a1d27;
+  border-radius: 14px;
+  border: 1px solid #2a2d3e;
+  text-align: center;
+}
+
+.login-icon {
+  width: 48px;
+  height: 48px;
+  background: #1e88e5;
+  border-radius: 12px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: white;
+}
+
+.login-container h1 {
+  margin: 0 0 6px;
+  color: #e8eaf6;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: #7b7f9e;
+  font-size: 14px;
+}
+
+.input-group {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: #a0a3b1;
+  font-size: 13px;
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 11px 14px;
+  background: #0f1117;
+  border: 1px solid #2a2d3e;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #e8eaf6;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: #1e88e5;
+  outline: none;
+}
+
+input::placeholder {
+  color: #3d4060;
+}
+
+.form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #a0a3b1;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #1e88e5;
+}
+
+.forgot-link {
+  color: #1e88e5;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.login-btn {
+  width: 100%;
+  background: #1e88e5;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.2s;
+}
+
+.login-btn:hover {
+  background: #166fbe;
+}
+
+.error {
+  color: #ef5350;
+  margin-top: 10px;
+  font-size: 13px;
+  min-height: 18px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #2a2d3e;
+  margin: 20px 0;
+}
+
+.back-home a {
+  text-decoration: none;
+  color: #7b7f9e;
+  font-size: 13px;
+}
+
+.back-home a:hover {
+  color: #a0a3b1;
+}

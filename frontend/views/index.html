@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Traffic Optimizer</title>
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/home.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+       Traffic Optimizer
+    </div>
+    <a class="nav-login" href="/login">Login</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="grid-overlay"></div>
+    <div class="glow"></div>
+    <div class="hero-content">
+      <div class="hero-badge"><span class="badge-dot"></span>AI-powered traffic management</div>
+      <h1>Intelligent traffic.<br><span class="hero-accent">Zero congestion.</span></h1>
+      <p>YOLO vehicle detection, ESP32 signal control, and real-time override — all from one secure dashboard.</p>
+      <a class="hero-btn" href="/login">Login to access</a>
+      <div class="lock-note">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        Access requires login
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <p class="section-label">What it does</p>
+    <h2 class="section-heading">Built for real-world traffic</h2>
+    <p class="section-sub">Every feature designed to reduce wait times and keep traffic flowing.</p>
+    <div class="feat-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon fi-blue">
+          <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        </div>
+        <h3>AI camera detection</h3>
+        <p>YOLO model counts vehicles at each junction in real time, sending live density data to the system every second.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon fi-green">
+          <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+        </div>
+        <h3>Adaptive signal control</h3>
+        <p>ESP32 controllers calculate optimal green light durations each cycle based on live vehicle counts per lane.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon fi-red">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z"/></svg>
+        </div>
+        <h3>Emergency override</h3>
+        <p>Force all red, N-S green, or E-W green instantly from the dashboard. Duration-controlled with auto-revert.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon fi-purple">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        </div>
+        <h3>Live analytics</h3>
+        <p>Traffic flow charts, per-junction throughput, wait time breakdowns and system health on a dedicated page.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon fi-amber">
+          <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        </div>
+        <h3>ESP32 wireless control</h3>
+        <p>Two ESP32 boards communicate over WiFi — receiving commands and reporting decisions back in real time.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon fi-teal">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <h3>Traffic simulation</h3>
+        <p>Run controlled simulations to test signal timing strategies before deploying changes to live junctions.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <h2>How it works</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-line"></div>
+        <div class="step-num">1</div>
+        <div class="step-title">Camera detects cars</div>
+        <div class="step-desc">YOLO counts vehicles at each junction</div>
+      </div>
+      <div class="how-step">
+        <div class="step-line"></div>
+        <div class="step-num">2</div>
+        <div class="step-title">Data sent to backend</div>
+        <div class="step-desc">Laptop pushes counts to Node server</div>
+      </div>
+      <div class="how-step">
+        <div class="step-line"></div>
+        <div class="step-num">3</div>
+        <div class="step-title">ESP32 calculates timing</div>
+        <div class="step-desc">Controllers set optimal light durations</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">4</div>
+        <div class="step-title">Dashboard shows live data</div>
+        <div class="step-desc">Operators monitor and override if needed</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>Ready to take control?</h2>
+    <p>Log in to access the live dashboard, analytics, and override controls.</p>
+    <a class="hero-btn" href="/login">Login to get started</a>
+  </section>
+
+  <footer class="footer">
+    <p>© 2026 Traffic Optimizer. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/login">Login</a>
+      <a href="/login">Dashboard</a>
+      <a href="/login">Analytics</a>
+    </div>
+  </footer>
+
+  <script src="/js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Traffic Simulator — Eswatini</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070a0f;
+  --surface: #0c1118;
+  --card: #101820;
+  --border: #1a2535;
+  --border2: #22334a;
+  --text: #d8e4f0;
+  --muted: #486070;
+  --accent: #00b8f0;
+  --green: #00e87a;
+  --amber: #ffb020;
+  --red: #ff3344;
+  --purple: #a78bfa;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; padding: 20px; }
+
+.header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+.header-left p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.cycle-pill {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 7px 14px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+}
+.cycle-pill span { color: var(--accent); font-weight: 700; font-size: 15px; margin-left: 5px; }
+.server-pill {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 12px; font-size: 11px;
+  color: var(--muted); display: flex; align-items: center; gap: 5px;
+}
+.server-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.server-dot.off { background: var(--red); }
+
+.main-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+
+/* ── Intersection canvas ── */
+.intersection-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.section-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
+
+/* 5-col × 5-row grid: corners + road arms + center */
+.int-grid {
+  display: grid;
+  grid-template-columns: 1fr 70px 140px 70px 1fr;
+  grid-template-rows: auto 70px 160px 70px auto;
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+}
+
+/* Road arms (shaded connectors) */
+.road-ns {
+  background: var(--border);
+  border-radius: 4px;
+  width: 60px;
+}
+.road-arm-n { grid-column: 3; grid-row: 2; height: 70px; width: 60px; background: var(--border); border-radius: 4px 4px 0 0; }
+.road-arm-s { grid-column: 3; grid-row: 4; height: 70px; width: 60px; background: var(--border); border-radius: 0 0 4px 4px; }
+.road-arm-e { grid-column: 4; grid-row: 3; height: 60px; width: 70px; background: var(--border); border-radius: 0 4px 4px 0; align-self: center; }
+.road-arm-w { grid-column: 2; grid-row: 3; height: 60px; width: 70px; background: var(--border); border-radius: 4px 0 0 4px; align-self: center; }
+
+/* Junction center */
+.junction-center {
+  grid-column: 3; grid-row: 3;
+  background: var(--border2);
+  border-radius: 4px;
+  width: 140px; height: 160px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.jct-inner { position: relative; width: 90px; height: 90px; }
+.jct-inner::before, .jct-inner::after {
+  content: ''; position: absolute; background: var(--muted); border-radius: 2px; opacity: 0.3;
+}
+.jct-inner::before { width: 100%; height: 8px; top: 50%; transform: translateY(-50%); }
+.jct-inner::after  { width: 8px; height: 100%; left: 50%; transform: translateX(-50%); }
+
+/* Phase indicator inside junction */
+.phase-indicator {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+  letter-spacing: 1px; white-space: nowrap;
+}
+.phase-indicator.active { color: var(--accent); }
+
+/* Countdown ring in junction */
+.countdown-ring {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 22px; font-weight: 700;
+  color: var(--text); min-width: 40px; text-align: center; line-height: 1;
+}
+.countdown-ring.c-green { color: var(--green); }
+.countdown-ring.c-amber { color: var(--amber); }
+.countdown-ring.c-red   { color: var(--red); }
+
+/* Lane cards — positioned at grid edges */
+.lane-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+  transition: border-color 0.2s;
+}
+.lane-card.active { border-color: var(--accent); }
+.lane-card.heavy  { border-color: var(--amber); }
+.lane-card.clear  { border-color: var(--border2); }
+
+.lane-north { grid-column: 3; grid-row: 1; width: 200px; }
+.lane-south { grid-column: 3; grid-row: 5; width: 200px; }
+.lane-east  { grid-column: 5; grid-row: 3; }
+.lane-west  { grid-column: 1; grid-row: 3; }
+
+.lane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.lane-title  { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.8px; }
+.lane-badge  { font-size: 9px; padding: 2px 7px; border-radius: 20px; font-family: var(--mono); }
+.b-empty  { background: #131c28; color: var(--muted); }
+.b-light  { background: #08221a; color: var(--green); }
+.b-normal { background: #081a28; color: var(--accent); }
+.b-heavy  { background: #241a00; color: var(--amber); }
+.b-full   { background: #240808; color: var(--red); }
+
+.lane-total { font-family: var(--mono); font-size: 32px; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 6px; }
+.lane-total.t-heavy { color: var(--amber); }
+.lane-total.t-full  { color: var(--red); }
+.lane-total.t-clear { color: var(--muted); }
+
+.queue-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.qtag { font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+.qt-carry { background: #1e1200; color: var(--amber); }
+.qt-new   { background: #081a10; color: var(--green); }
+
+.add-controls { display: flex; align-items: center; gap: 6px; }
+.btn-add {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--text); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.btn-add:hover { background: var(--border); border-color: var(--accent); }
+.btn-add:active { transform: scale(0.95); }
+.btn-add:disabled { opacity: 0.3; cursor: not-allowed; }
+.add-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--green); min-width: 20px; text-align: center; }
+.add-hint { font-size: 10px; color: var(--muted); }
+.green-preview { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-top: 6px; }
+.green-preview span { color: var(--accent); }
+
+/* Left-turn yield indicator */
+.lt-yield { font-family: var(--mono); font-size: 9px; color: var(--amber); margin-top: 3px; opacity: 0.7; }
+
+/* ── Traffic Lights ── */
+.tl-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.tl-housing {
+  background: #0a0f14; border: 1px solid var(--border2);
+  border-radius: 8px; padding: 5px; display: flex; flex-direction: column; gap: 4px;
+  width: 28px; align-items: center;
+}
+.tl-bulb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #14202a; border: 1px solid var(--border);
+  transition: background 0.25s, box-shadow 0.25s;
+}
+.tl-bulb.lit-red    { background: #ff3344; box-shadow: 0 0 8px 2px #ff334480; }
+.tl-bulb.lit-amber  { background: #ffb020; box-shadow: 0 0 8px 2px #ffb02080; }
+.tl-bulb.lit-green  { background: #00e87a; box-shadow: 0 0 8px 2px #00e87a80; }
+.tl-label { font-family: var(--mono); font-size: 8px; color: var(--muted); letter-spacing: 0.5px; }
+
+/* Traffic light positions in grid */
+.tl-north { grid-column: 3; grid-row: 2; align-self: end; justify-self: end; margin-right: 4px; margin-bottom: 4px; }
+.tl-south { grid-column: 3; grid-row: 4; align-self: start; justify-self: start; margin-left: 4px; margin-top: 4px; }
+.tl-east  { grid-column: 4; grid-row: 3; align-self: end; justify-self: start; margin-left: 4px; margin-bottom: 4px; }
+.tl-west  { grid-column: 2; grid-row: 3; align-self: start; justify-self: end; margin-right: 4px; margin-top: 4px; }
+
+/* Direction arrows on road arms */
+.road-arrow {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--muted); opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ── Right panel ── */
+.right-panel { display: flex; flex-direction: column; gap: 12px; }
+.panel-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+
+.send-btn {
+  width: 100%; background: var(--accent); color: #000;
+  border: none; border-radius: 10px; padding: 13px;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.send-btn:hover { opacity: 0.88; }
+.send-btn:active { transform: scale(0.98); }
+.send-btn:disabled { background: var(--border2); color: var(--muted); cursor: not-allowed; opacity: 1; }
+
+/* Phase timeline */
+.timeline {
+  display: flex; gap: 3px; margin: 10px 0 4px; height: 28px;
+  border-radius: 6px; overflow: hidden;
+}
+.tl-seg {
+  flex: 0 0 auto; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  transition: flex 0.3s;
+}
+.tl-seg.seg-ns-g   { background: #08301a; color: var(--green); }
+.tl-seg.seg-ns-y   { background: #2a1a00; color: var(--amber); }
+.tl-seg.seg-all-r  { background: #1a0808; color: var(--red); }
+.tl-seg.seg-ew-g   { background: #082030; color: var(--accent); }
+.tl-seg.seg-ew-y   { background: #201800; color: #c0800a; }
+.tl-seg.seg-skip   { background: #12141a; color: var(--muted); border: 1px dashed var(--border2); }
+.tl-seg.seg-active { outline: 2px solid var(--text); outline-offset: -2px; }
+
+/* Decision rows */
+.decision-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.decision-row:last-child { border-bottom: none; }
+.dr-label { color: var(--muted); }
+.dr-val { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); }
+.dr-val.green  { color: var(--green); }
+.dr-val.amber  { color: var(--amber); }
+.dr-val.red    { color: var(--red); }
+.dr-val.accent { color: var(--accent); }
+
+/* Override */
+.override-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.obtn {
+  padding: 9px 6px; border-radius: 6px; border: 1px solid transparent;
+  cursor: pointer; font-family: var(--mono); font-size: 10px; font-weight: 500;
+  transition: opacity 0.2s; letter-spacing: 0.3px;
+}
+.obtn:hover { opacity: 0.8; }
+.o-auto { background: #081a30; border-color: #143050; color: #50a0f0; }
+.o-ns   { background: #082010; border-color: #143820; color: var(--green); }
+.o-ew   { background: #082030; border-color: #143050; color: #30c0d0; }
+.o-red  { background: #200808; border-color: #381414; color: var(--red); }
+.override-status {
+  margin-top: 8px; font-family: var(--mono); font-size: 10px;
+  color: var(--muted); padding: 6px 8px;
+  background: var(--bg); border-radius: 5px; border: 1px solid var(--border);
+}
+.override-status.active { color: var(--amber); border-color: #1e1400; background: #0e0a00; }
+
+/* Log */
+.log-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; font-family: var(--mono); font-size: 10px;
+  height: 160px; overflow-y: auto; line-height: 1.7;
+}
+.log-box::-webkit-scrollbar { width: 3px; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.log-line        { color: var(--muted); }
+.log-line.l-head { color: var(--accent); }
+.log-line.l-green{ color: var(--green); }
+.log-line.l-amber{ color: var(--amber); }
+.log-line.l-red  { color: var(--red); }
+.log-line.l-info { color: #4090d0; }
+
+/* LHD info strip */
+.lhd-strip {
+  background: #0a1420; border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 8px; padding: 8px 12px;
+  font-size: 11px; color: var(--muted); line-height: 1.6;
+}
+.lhd-strip strong { color: var(--amber); }
+
+/* Phase legend */
+.phase-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.pl-item { display: flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.pl-dot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #1a0808; border: 1px solid var(--red);
+  border-radius: 8px; padding: 10px 16px;
+  font-size: 12px; color: var(--red); font-family: var(--mono);
+  display: none; z-index: 999;
+}
+.toast.show { display: block; }
+
+/* Countdown input spinner overlay during cycle */
+.running-overlay {
+  font-family: var(--mono); font-size: 10px; color: var(--amber);
+  text-align: center; padding: 2px 0;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.blink { animation: blink 0.8s infinite; }
+
+@media (max-width: 980px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .int-grid { grid-template-columns: 1fr 50px 120px 50px 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Traffic Vehicle Simulator</h1>
+    <p>Eswatini · left-hand drive · clockwise phase sequence · left-turn yields</p>
+  </div>
+  <div class="header-right">
+    <div class="cycle-pill">Cycle <span id="cycle-num">1</span></div>
+    <div class="server-pill">
+      <span class="server-dot" id="server-dot"></span>
+      <span id="server-label">172.16.16.86:5000</span>
+    </div>
+  </div>
+</div>
+
+<div class="main-grid">
+
+  <!-- ── Intersection ── -->
+  <div class="intersection-wrap">
+    <div class="section-label">Intersection — add cars then send cycle &nbsp;·&nbsp; lights animate the active phase</div>
+
+    <div class="int-grid" id="int-grid">
+
+      <!-- Road arms -->
+      <div class="road-arm-n"></div>
+      <div class="road-arm-s"></div>
+      <div class="road-arm-e"></div>
+      <div class="road-arm-w"></div>
+
+      <!-- Traffic lights (positioned in arm cells) -->
+      <!-- North light: south-facing (approaches from north heading south) -->
+      <div class="tl-north tl-wrap" style="position:relative;z-index:2;align-self:end;justify-self:end;margin:0 4px 4px 0;grid-column:3;grid-row:2;">
+        <div class="tl-housing" id="tl-N">
+          <div class="tl-bulb" id="tl-N-r"></div>
+          <div class="tl-bulb" id="tl-N-a"></div>
+          <div class="tl-bulb" id="tl-N-g"></div>
+        </div>
+        <div class="tl-label">N</div>
+      </div>
+
+      <!-- South light -->
+      <div style="position:relative;z-index:2;align-self:start;justify-self:start;margin:4px 0 0 4px;grid-column:3;grid-row:4;display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <div class="tl-label">S</div>
+        <div class="tl-housing" id="tl-S">
+          <div class="tl-bulb" id="tl-S-r"></div>
+          <div class="tl-bulb" id="tl-S-a"></div>
+          <div class="tl-bulb" id="tl-S-g"></div>
+        </div>
+      </div>
+
+      <!-- East light -->
+      <div style="position:relative;z-index:2;align-self:end;justify-self:start;margin:0 0 4px 4px;grid-column:4;grid-row:3;display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <div class="tl-housing" id="tl-E">
+          <div class="tl-bulb" id="tl-E-r"></div>
+          <div class="tl-bulb" id="tl-E-a"></div>
+          <div class="tl-bulb" id="tl-E-g"></div>
+        </div>
+        <div class="tl-label">E</div>
+      </div>
+
+      <!-- West light -->
+      <div style="position:relative;z-index:2;align-self:start;justify-self:end;margin:4px 4px 0 0;grid-column:2;grid-row:3;display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <div class="tl-label">W</div>
+        <div class="tl-housing" id="tl-W">
+          <div class="tl-bulb" id="tl-W-r"></div>
+          <div class="tl-bulb" id="tl-W-a"></div>
+          <div class="tl-bulb" id="tl-W-g"></div>
+        </div>
+      </div>
+
+      <!-- Junction center -->
+      <div class="junction-center">
+        <div class="phase-indicator" id="phase-label">IDLE</div>
+        <div class="jct-inner"></div>
+        <div class="countdown-ring" id="jct-countdown">—</div>
+      </div>
+
+      <!-- North lane -->
+      <div class="lane-card lane-north" id="card-N">
+        <div class="lane-header">
+          <span class="lane-title">NORTH · J1</span>
+          <span class="lane-badge b-empty" id="badge-N">Empty</span>
+        </div>
+        <div class="lane-total" id="total-N">0</div>
+        <div class="queue-tags" id="tags-N"></div>
+        <div class="add-controls">
+          <button class="btn-add" id="btn-N-m" onclick="addCar('N',-1)">−</button>
+          <span class="add-val" id="added-N">0</span>
+          <button class="btn-add" id="btn-N-p" onclick="addCar('N',1)">+</button>
+          <span class="add-hint">new</span>
+        </div>
+        <div class="green-preview" id="prev-N">needs <span>0s</span></div>
+        <div class="lt-yield">↰ left turn yields</div>
+      </div>
+
+      <!-- South lane -->
+      <div class="lane-card lane-south" id="card-S">
+        <div class="lane-header">
+          <span class="lane-title">SOUTH · J3</span>
+          <span class="lane-badge b-empty" id="badge-S">Empty</span>
+        </div>
+        <div class="lane-total" id="total-S">0</div>
+        <div class="queue-tags" id="tags-S"></div>
+        <div class="add-controls">
+          <button class="btn-add" id="btn-S-m" onclick="addCar('S',-1)">−</button>
+          <span class="add-val" id="added-S">0</span>
+          <button class="btn-add" id="btn-S-p" onclick="addCar('S',1)">+</button>
+          <span class="add-hint">new</span>
+        </div>
+        <div class="green-preview" id="prev-S">needs <span>0s</span></div>
+        <div class="lt-yield">↰ left turn yields</div>
+      </div>
+
+      <!-- East lane -->
+      <div class="lane-card lane-east" id="card-E">
+        <div class="lane-header">
+          <span class="lane-title">EAST · J2</span>
+          <span class="lane-badge b-empty" id="badge-E">Empty</span>
+        </div>
+        <div class="lane-total" id="total-E">0</div>
+        <div class="queue-tags" id="tags-E"></div>
+        <div class="add-controls">
+          <button class="btn-add" id="btn-E-m" onclick="addCar('E',-1)">−</button>
+          <span class="add-val" id="added-E">0</span>
+          <button class="btn-add" id="btn-E-p" onclick="addCar('E',1)">+</button>
+          <span class="add-hint">new</span>
+        </div>
+        <div class="green-preview" id="prev-E">needs <span>0s</span></div>
+        <div class="lt-yield">↰ left turn yields</div>
+      </div>
+
+      <!-- West lane -->
+      <div class="lane-card lane-west" id="card-W">
+        <div class="lane-header">
+          <span class="lane-title">WEST · J4</span>
+          <span class="lane-badge b-empty" id="badge-W">Empty</span>
+        </div>
+        <div class="lane-total" id="total-W">0</div>
+        <div class="queue-tags" id="tags-W"></div>
+        <div class="add-controls">
+          <button class="btn-add" id="btn-W-m" onclick="addCar('W',-1)">−</button>
+          <span class="add-val" id="added-W">0</span>
+          <button class="btn-add" id="btn-W-p" onclick="addCar('W',1)">+</button>
+          <span class="add-hint">new</span>
+        </div>
+        <div class="green-preview" id="prev-W">needs <span>0s</span></div>
+        <div class="lt-yield">↰ left turn yields</div>
+      </div>
+
+    </div><!-- end int-grid -->
+
+    <!-- Phase timeline -->
+    <div style="margin-top:14px;">
+      <div class="section-label" style="margin-bottom:6px;">Cycle phase timeline</div>
+      <div class="timeline" id="timeline">
+        <div class="tl-seg seg-skip" style="flex:1">NO DATA</div>
+      </div>
+      <div class="phase-legend">
+        <div class="pl-item"><div class="pl-dot" style="background:#08301a"></div>NS green</div>
+        <div class="pl-item"><div class="pl-dot" style="background:#082030"></div>EW green</div>
+        <div class="pl-item"><div class="pl-dot" style="background:#2a1a00"></div>yellow</div>
+        <div class="pl-item"><div class="pl-dot" style="background:#1a0808"></div>all-red</div>
+        <div class="pl-item"><div class="pl-dot" style="background:#12141a;border:1px dashed #22334a"></div>skipped</div>
+      </div>
+    </div>
+
+    <!-- LHD note -->
+    <div class="lhd-strip" style="margin-top:14px;">
+      <strong>Left-hand drive rules:</strong> Traffic flows on the left. Left turns yield to oncoming straight traffic — they do not get their own protected phase. Right turns are the "easy" turns (equivalent to left turns in RHD countries). Phase sequence is <strong>clockwise</strong>: North → East → South → West.
+    </div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="right-panel">
+
+    <button class="send-btn" id="send-btn" onclick="sendCycle()">SEND CYCLE →</button>
+
+    <div class="panel-box">
+      <div class="section-label" style="margin-bottom:10px;">ESP32 decision</div>
+      <div class="decision-row"><span class="dr-label">NS green time</span><span class="dr-val green" id="d-ns-t">--</span></div>
+      <div class="decision-row"><span class="dr-label">EW green time</span><span class="dr-val green" id="d-ew-t">--</span></div>
+      <div class="decision-row"><span class="dr-label">NS cleared</span><span class="dr-val accent" id="d-ns-cl">--</span></div>
+      <div class="decision-row"><span class="dr-label">EW cleared</span><span class="dr-val accent" id="d-ew-cl">--</span></div>
+      <div class="decision-row"><span class="dr-label">NS remaining</span><span class="dr-val amber" id="d-ns-rm">--</span></div>
+      <div class="decision-row"><span class="dr-label">EW remaining</span><span class="dr-val amber" id="d-ew-rm">--</span></div>
+      <div class="decision-row"><span class="dr-label">Phase skipped</span><span class="dr-val red" id="d-skip">--</span></div>
+      <div class="decision-row"><span class="dr-label">Cycle time</span><span class="dr-val" id="d-total">--</span></div>
+    </div>
+
+    <div class="panel-box">
+      <div class="section-label" style="margin-bottom:10px;">Manual override</div>
+      <div class="override-grid">
+        <button class="obtn o-auto" onclick="sendOverride('AUTO')">AUTO</button>
+        <button class="obtn o-ns"   onclick="sendOverride('NS_GREEN')">FORCE N-S</button>
+        <button class="obtn o-ew"   onclick="sendOverride('EW_GREEN')">FORCE E-W</button>
+        <button class="obtn o-red"  onclick="sendOverride('ALL_RED')">ALL RED</button>
+      </div>
+      <div class="override-status" id="override-status">Mode: AUTO</div>
+    </div>
+
+    <div class="panel-box">
+      <div class="section-label" style="margin-bottom:8px;">Serial log</div>
+      <div class="log-box" id="log"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">Connection failed — is the server running?</div>
+
+<script>
+const SERVER  = 'http://172.16.16.86:5000';
+const MAX_GREEN = 20;
+const YELLOW    = 3;
+const ALL_RED_T = 2;
+// 3 seconds before cycle send: freeze car adding
+const LOCK_BEFORE = 3;
+
+const state = {
+  N: { carry:0, added:0 },
+  S: { carry:0, added:0 },
+  E: { carry:0, added:0 },
+  W: { carry:0, added:0 }
+};
+
+let cycleNum       = 1;
+let sentThisCycle  = false;
+let overrideMode   = 'AUTO';
+let cycleRunning   = false;
+let phaseTimer     = null;
+let lockTimer      = null;
+
+/* ── Queue math ── */
+function calcQueue(total) {
+  if (total === 0) return { time:0, cleared:0, remain:0 };
+  let time=0, cleared=0;
+  for (let pos=1; pos<=total; pos++) {
+    if (time+pos <= MAX_GREEN) { time+=pos; cleared++; } else break;
+  }
+  return { time, cleared, remain: total-cleared };
+}
+function laneTotal(k) { return state[k].carry + state[k].added; }
+
+function getBadge(t) {
+  if (t===0) return ['Empty','b-empty'];
+  if (t<=3)  return ['Light','b-light'];
+  if (t<=8)  return ['Normal','b-normal'];
+  if (t<=14) return ['Heavy','b-heavy'];
+  return ['Full','b-full'];
+}
+function getTotalClass(t) {
+  if (t===0)  return 't-clear';
+  if (t>=15)  return 't-full';
+  if (t>=9)   return 't-heavy';
+  return '';
+}
+
+/* ── Render lane card ── */
+function renderLane(k) {
+  const s=state[k], total=laneTotal(k), q=calcQueue(total);
+  const [bl,bc]=getBadge(total);
+  document.getElementById('total-'+k).textContent = total;
+  document.getElementById('total-'+k).className   = 'lane-total '+getTotalClass(total);
+  document.getElementById('badge-'+k).textContent = bl;
+  document.getElementById('badge-'+k).className   = 'lane-badge '+bc;
+  document.getElementById('added-'+k).textContent = s.added;
+  const tags = document.getElementById('tags-'+k);
+  tags.innerHTML='';
+  if (s.carry>0) tags.innerHTML+=`<span class="qtag qt-carry">${s.carry} carry</span>`;
+  if (s.added>0) tags.innerHTML+=`<span class="qtag qt-new">+${s.added} new</span>`;
+  const prev=document.getElementById('prev-'+k);
+  prev.innerHTML = total===0 ? 'empty — may skip' : `needs <span>${q.time}s</span> · clears ${q.cleared}`;
+  const card=document.getElementById('card-'+k);
+  card.classList.remove('active','heavy','clear');
+  if (total>=9) card.classList.add('heavy');
+  else if (total>0) card.classList.add('active');
+  else card.classList.add('clear');
+}
+function renderAll() { ['N','S','E','W'].forEach(renderLane); updateDecisionPreview(); }
+
+/* ── Decision preview ── */
+function updateDecisionPreview() {
+  const ns=calcQueue(laneTotal('N')+laneTotal('S'));
+  const ew=calcQueue(laneTotal('E')+laneTotal('W'));
+  const skipNS=(laneTotal('N')+laneTotal('S'))===0;
+  const skipEW=(laneTotal('E')+laneTotal('W'))===0;
+  const cycleT=(ns.time||0)+(ew.time||0)
+    +(!skipNS?YELLOW+ALL_RED_T:0)
+    +(!skipEW?YELLOW+ALL_RED_T:0);
+  document.getElementById('d-ns-t').textContent  = skipNS?'skip':ns.time+'s';
+  document.getElementById('d-ew-t').textContent  = skipEW?'skip':ew.time+'s';
+  document.getElementById('d-ns-cl').textContent = skipNS?'--':ns.cleared;
+  document.getElementById('d-ew-cl').textContent = skipEW?'--':ew.remain;
+  document.getElementById('d-ns-rm').textContent = skipNS?'--':ns.remain;
+  document.getElementById('d-ew-rm').textContent = skipEW?'--':ew.remain;
+  document.getElementById('d-skip').textContent  = skipNS?'NS':skipEW?'EW':'None';
+  document.getElementById('d-total').textContent = cycleT+'s';
+}
+
+/* ── Traffic light control ── */
+// phase: 'all-red' | 'ns-green' | 'ns-yellow' | 'ew-green' | 'ew-yellow'
+// LHD clockwise: N→E→S→W means NS goes first, then EW
+function setLights(phase) {
+  const lights = ['N','S','E','W'];
+  // reset all
+  lights.forEach(d => {
+    ['r','a','g'].forEach(c => {
+      const b=document.getElementById('tl-'+d+'-'+c);
+      b.className='tl-bulb';
+    });
+  });
+
+  const setDir = (dirs, r,a,g) => {
+    dirs.forEach(d=>{
+      if(r) document.getElementById('tl-'+d+'-r').classList.add('lit-red');
+      if(a) document.getElementById('tl-'+d+'-a').classList.add('lit-amber');
+      if(g) document.getElementById('tl-'+d+'-g').classList.add('lit-green');
+    });
+  };
+
+  const ph=document.getElementById('phase-label');
+  const jct=document.getElementById('jct-countdown');
+
+  if (phase==='all-red') {
+    setDir(['N','S','E','W'],true,false,false);
+    ph.textContent='ALL RED'; ph.classList.remove('active');
+    jct.className='countdown-ring c-red';
+  } else if (phase==='ns-green') {
+    // N & S get green; E & W red
+    // LHD: left-turn (i.e. turning to cross oncoming) yields — shown via amber flash but we mark with yield indicator
+    setDir(['N','S'],false,false,true);
+    setDir(['E','W'],true,false,false);
+    ph.textContent='N–S GREEN'; ph.classList.add('active');
+    jct.className='countdown-ring c-green';
+  } else if (phase==='ns-yellow') {
+    setDir(['N','S'],false,true,false);
+    setDir(['E','W'],true,false,false);
+    ph.textContent='N–S YELLOW'; ph.classList.remove('active');
+    jct.className='countdown-ring c-amber';
+  } else if (phase==='ew-green') {
+    setDir(['E','W'],false,false,true);
+    setDir(['N','S'],true,false,false);
+    ph.textContent='E–W GREEN'; ph.classList.add('active');
+    jct.className='countdown-ring c-green';
+  } else if (phase==='ew-yellow') {
+    setDir(['E','W'],false,true,false);
+    setDir(['N','S'],true,false,false);
+    ph.textContent='E–W YELLOW'; ph.classList.remove('active');
+    jct.className='countdown-ring c-amber';
+  } else if (phase==='idle') {
+    setDir(['N','S','E','W'],false,false,false);
+    ph.textContent='IDLE'; ph.classList.remove('active');
+    jct.textContent='—'; jct.className='countdown-ring';
+  }
+}
+
+/* ── Countdown in junction ── */
+let countdownInterval=null;
+function startCountdown(seconds, phase) {
+  if(countdownInterval) clearInterval(countdownInterval);
+  const jct=document.getElementById('jct-countdown');
+  let rem=seconds;
+  jct.textContent=rem;
+  countdownInterval=setInterval(()=>{
+    rem--;
+    jct.textContent=rem>0?rem:'';
+    if(rem<=0) clearInterval(countdownInterval);
+  },1000);
+}
+
+/* ── Build timeline bar ── */
+function buildTimeline(nsGreen, ewGreen, nsSkip, ewSkip) {
+  const tl=document.getElementById('timeline');
+  tl.innerHTML='';
+  const total = nsGreen+ewGreen
+    +(!nsSkip?YELLOW+ALL_RED_T:0)
+    +(!ewSkip?YELLOW+ALL_RED_T:0)||1;
+
+  const seg=(cls,dur,label)=>{
+    if(dur<=0) return;
+    const d=document.createElement('div');
+    d.className='tl-seg '+cls;
+    d.style.flex=dur/total;
+    d.textContent=dur+'s';
+    d.title=label+' ('+dur+'s)';
+    tl.appendChild(d);
+  };
+
+  if(nsSkip) { const d=document.createElement('div'); d.className='tl-seg seg-skip'; d.style.flex=0.5; d.textContent='NS skip'; tl.appendChild(d); }
+  else {
+    seg('seg-ns-g', nsGreen, 'N-S green');
+    seg('seg-ns-y', YELLOW, 'N-S yellow');
+    seg('seg-all-r', ALL_RED_T, 'All red');
+  }
+  if(ewSkip) { const d=document.createElement('div'); d.className='tl-seg seg-skip'; d.style.flex=0.5; d.textContent='EW skip'; tl.appendChild(d); }
+  else {
+    seg('seg-ew-g', ewGreen, 'E-W green');
+    seg('seg-ew-y', YELLOW, 'E-W yellow');
+    seg('seg-all-r', ALL_RED_T, 'All red');
+  }
+}
+
+/* ── Animate cycle phases ── */
+function animateCycle(nsGreen, ewGreen) {
+  const nsSkip=nsGreen===0, ewSkip=ewGreen===0;
+  buildTimeline(nsGreen, ewGreen, nsSkip, ewSkip);
+  setInputsLocked(true);
+
+  // Build phase sequence (clockwise: NS first, then EW)
+  const phases=[];
+  if(!nsSkip) {
+    phases.push({phase:'ns-green', dur:nsGreen, seg:0});
+    phases.push({phase:'ns-yellow', dur:YELLOW, seg:1});
+    phases.push({phase:'all-red', dur:ALL_RED_T, seg:2});
+  }
+  if(!ewSkip) {
+    phases.push({phase:'ew-green', dur:ewGreen, seg:nsSkip?0:3});
+    phases.push({phase:'ew-yellow', dur:YELLOW, seg:nsSkip?1:4});
+    phases.push({phase:'all-red', dur:ALL_RED_T, seg:nsSkip?2:5});
+  }
+
+  // Highlight timeline segment
+  const segs=[...document.getElementById('timeline').children];
+  let segIdx=0;
+
+  function runPhase(i) {
+    if(i>=phases.length) {
+      setLights('idle');
+      setInputsLocked(false);
+      cycleRunning=false;
+      document.getElementById('send-btn').disabled=false;
+      document.getElementById('send-btn').textContent='SEND CYCLE →';
+      log(`[DONE] Cycle ${cycleNum-1} complete — add cars for next cycle`, 'log-line l-info');
+      return;
+    }
+    const p=phases[i];
+    setLights(p.phase);
+    startCountdown(p.dur, p.phase);
+    // highlight timeline seg
+    segs.forEach(s=>s.classList.remove('seg-active'));
+    if(segs[segIdx]) segs[segIdx].classList.add('seg-active');
+    segIdx++;
+    phaseTimer=setTimeout(()=>runPhase(i+1), p.dur*1000);
+  }
+
+  setLights('all-red');
+  setTimeout(()=>runPhase(0), 500);
+}
+
+/* ── Lock/unlock car inputs ── */
+function setInputsLocked(locked) {
+  ['N','S','E','W'].forEach(k=>{
+    document.getElementById('btn-'+k+'-m').disabled=locked;
+    document.getElementById('btn-'+k+'-p').disabled=locked;
+  });
+  if(locked) {
+    document.getElementById('send-btn').textContent='CYCLE RUNNING…';
+    document.getElementById('send-btn').disabled=true;
+  }
+}
+
+/* ── 3-second pre-lock (show countdown) ── */
+function startPreLock(cb) {
+  let rem=LOCK_BEFORE;
+  const btn=document.getElementById('send-btn');
+  btn.disabled=true;
+  const tick=()=>{
+    btn.textContent=`LOCKING IN ${rem}s…`;
+    rem--;
+    if(rem<0) { cb(); return; }
+    lockTimer=setTimeout(tick,1000);
+  };
+  tick();
+}
+
+/* ── Add/remove cars ── */
+function addCar(key,delta) {
+  if(cycleRunning) return;
+  state[key].added=Math.max(0,state[key].added+delta);
+  sentThisCycle=false;
+  renderLane(key);
+  updateDecisionPreview();
+}
+
+/* ── Log ── */
+function log(text,cls='log-line') {
+  const box=document.getElementById('log');
+  const line=document.createElement('div');
+  line.className=cls; line.textContent=text;
+  box.appendChild(line); box.scrollTop=box.scrollHeight;
+}
+
+/* ── Send cycle ── */
+async function sendCycle() {
+  if(sentThisCycle||cycleRunning) return;
+  cycleRunning=true;
+  sentThisCycle=true;
+
+  // 3-second pre-lock
+  startPreLock(async ()=>{
+    const payload={ cycle:cycleNum, N:laneTotal('N'), S:laneTotal('S'), E:laneTotal('E'), W:laneTotal('W') };
+    log(`== CYCLE ${cycleNum} ==`,'log-line l-head');
+    log(`[SEND] N:${payload.N} S:${payload.S} E:${payload.E} W:${payload.W}`,'log-line l-info');
+
+    let nsGreen=0, ewGreen=0, nsCl=0, ewCl=0, nsRm=0, ewRm=0, cycleT=0;
+
+    try {
+      const res=await fetch(`${SERVER}/api/traffic/simulate`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const data=await res.json();
+
+      if(data.success) {
+        setServerOnline(true);
+        const r=data.result;
+        nsGreen=r.ns_green; ewGreen=r.ew_green;
+        nsCl=r.ns_cleared; ewCl=r.ew_cleared;
+        nsRm=r.ns_remain; ewRm=r.ew_remain;
+        cycleT=r.cycle_time;
+
+        log(`[NS]   green=${nsGreen}s cleared=${nsCl} remain=${nsRm}`,'log-line l-green');
+        log(`[EW]   green=${ewGreen}s cleared=${ewCl} remain=${ewRm}`,'log-line l-green');
+        if(nsGreen===0) log(`[SKIP] NS phase — no cars`,'log-line l-amber');
+        if(ewGreen===0) log(`[SKIP] EW phase — no cars`,'log-line l-amber');
+        log(`[CYCLE] total=${cycleT}s saved=${r.time_saved}s`,'log-line l-info');
+
+        document.getElementById('d-ns-t').textContent  = nsGreen>0?nsGreen+'s':'skip';
+        document.getElementById('d-ew-t').textContent  = ewGreen>0?ewGreen+'s':'skip';
+        document.getElementById('d-ns-cl').textContent = nsCl;
+        document.getElementById('d-ew-cl').textContent = ewCl;
+        document.getElementById('d-ns-rm').textContent = nsRm;
+        document.getElementById('d-ew-rm').textContent = ewRm;
+        document.getElementById('d-total').textContent = cycleT+'s';
+
+        applyCarry('N','S',nsRm);
+        applyCarry('E','W',ewRm);
+        cycleNum++;
+        document.getElementById('cycle-num').textContent=cycleNum;
+      } else {
+        log(`[ERR] ${data.message}`,'log-line l-red');
+        // Fall back to local calc
+        fallbackLocal(payload);
+        return;
+      }
+    } catch(err) {
+      setServerOnline(false);
+      log(`[ERR] Offline — using local sim`,'log-line l-red');
+      fallbackLocal(payload);
+      return;
+    }
+
+    renderAll();
+    animateCycle(nsGreen, ewGreen);
+  });
+}
+
+function fallbackLocal(payload) {
+  const nsTotal=payload.N+payload.S;
+  const ewTotal=payload.E+payload.W;
+  const ns=calcQueue(nsTotal);
+  const ew=calcQueue(ewTotal);
+  const nsGreen=ns.time, ewGreen=ew.time;
+  const nsSkip=nsGreen===0, ewSkip=ewGreen===0;
+  const cycleT=nsGreen+ewGreen+(!nsSkip?YELLOW+ALL_RED_T:0)+(!ewSkip?YELLOW+ALL_RED_T:0);
+  const saved=((nsSkip?YELLOW+ALL_RED_T:0)+(ewSkip?YELLOW+ALL_RED_T:0));
+
+  log(`[LOCAL] NS=${nsGreen}s EW=${ewGreen}s total=${cycleT}s saved=${saved}s`,'log-line l-amber');
+
+  document.getElementById('d-ns-t').textContent  = nsGreen>0?nsGreen+'s':'skip';
+  document.getElementById('d-ew-t').textContent  = ewGreen>0?ewGreen+'s':'skip';
+  document.getElementById('d-ns-cl').textContent = ns.cleared;
+  document.getElementById('d-ew-cl').textContent = ew.cleared;
+  document.getElementById('d-ns-rm').textContent = ns.remain;
+  document.getElementById('d-ew-rm').textContent = ew.remain;
+  document.getElementById('d-total').textContent = cycleT+'s';
+
+  applyCarry('N','S',ns.remain);
+  applyCarry('E','W',ew.remain);
+  cycleNum++;
+  document.getElementById('cycle-num').textContent=cycleNum;
+  renderAll();
+  animateCycle(nsGreen, ewGreen);
+}
+
+/* ── Carry logic ── */
+function applyCarry(kA,kB,totalRemain) {
+  const tA=laneTotal(kA), tB=laneTotal(kB), total=tA+tB;
+  if(total===0) { state[kA].carry=0; state[kB].carry=0; }
+  else {
+    state[kA].carry=Math.round((tA/total)*totalRemain);
+    state[kB].carry=totalRemain-state[kA].carry;
+  }
+  state[kA].added=0; state[kB].added=0;
+}
+
+/* ── Override ── */
+async function sendOverride(mode) {
+  log(`[OVERRIDE] → ${mode}`,'log-line l-amber');
+  overrideMode=mode;
+  const el=document.getElementById('override-status');
+  el.textContent=`Mode: ${mode}`;
+  el.className='override-status'+(mode!=='AUTO'?' active':'');
+  if(mode==='ALL_RED') setLights('all-red');
+  else if(mode==='NS_GREEN') setLights('ns-green');
+  else if(mode==='EW_GREEN') setLights('ew-green');
+  else setLights('idle');
+  try {
+    await fetch(`${SERVER}/api/traffic/override`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode,duration:null})
+    });
+    setServerOnline(true);
+  } catch { setServerOnline(false); }
+}
+
+/* ── Server status ── */
+function setServerOnline(online) {
+  document.getElementById('server-dot').className='server-dot'+(online?'':' off');
+  document.getElementById('server-label').textContent='172.16.16.86:5000'+(online?' · online':' · offline');
+  const toast=document.getElementById('toast');
+  toast.classList.toggle('show',!online);
+  if(!online) setTimeout(()=>toast.classList.remove('show'),4000);
+}
+async function pingServer() {
+  try { await fetch(`${SERVER}/api/traffic/status`); setServerOnline(true); }
+  catch { setServerOnline(false); }
+}
+
+// Init
+log('simulator ready — add cars and press SEND CYCLE','log-line l-info');
+log(`server: ${SERVER} (falls back to local sim if offline)`,'log-line');
+pingServer();
+setInterval(pingServer,10000);
+setLights('idle');
+renderAll();
+</script>
+</body>
+</html>
