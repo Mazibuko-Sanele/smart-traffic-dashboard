@@ -12,12 +12,8 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const app = express();
 
 // Optional: connectDB only if you want Mongo (we keep previous db.js call - harmless)
-try {
-  const connectDB = require("./config/db");
-  connectDB();
-} catch (err) {
-  console.warn("DB connect skipped or failed (no Mongo required).", err.message || err);
-}
+// Database disabled for Render deployment
+console.log("ℹ️ MongoDB disabled - running in demo mode");
 
 // Middleware
 app.use(cors({ origin: '*' }));
