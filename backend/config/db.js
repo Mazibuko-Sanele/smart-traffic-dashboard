@@ -1,12 +1,11 @@
-const mongoose = require("mongoose");
+// Mock database connection - No MongoDB
+// This mock does nothing so the app doesn't try to connect
+
+console.log('ℹ️ [Mock] MongoDB disabled - running in demo mode');
 
 async function connectDB() {
-    try {
-        await mongoose.connect("mongodb://localhost:27017/traffic_optimizer");
-        console.log("MongoDB connected");
-    } catch (err) {
-        console.log("MongoDB error:", err.message);
-    }
+  console.log('ℹ️ [Mock] Database connection skipped - using demo mode');
+  return Promise.resolve();
 }
 
 module.exports = connectDB;
