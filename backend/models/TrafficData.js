@@ -1,14 +1,46 @@
-const mongoose = require("mongoose");
+// Mock TrafficData model - No MongoDB
+// This mock returns empty data so the app works without a database
 
-const trafficSchema = new mongoose.Schema({
-    j1: Number,
-    j2: Number,
-    j3: Number,
-    j4: Number,
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
+class MockTrafficData {
+  constructor(data) {
+    this.data = data || {};
+  }
+  
+  static async find(query = {}) {
+    console.log('📊 [Mock] TrafficData.find() called with:', query);
+    return [];
+  }
+  
+  static async findOne(query = {}) {
+    console.log('📊 [Mock] TrafficData.findOne() called with:', query);
+    return null;
+  }
+  
+  static async findById(id) {
+    console.log('📊 [Mock] TrafficData.findById() called with:', id);
+    return null;
+  }
+  
+  async save() {
+    console.log('📊 [Mock] TrafficData.save() called with:', this.data);
+    return this;
+  }
+  
+  static async deleteMany(query = {}) {
+    console.log('📊 [Mock] TrafficData.deleteMany() called with:', query);
+    return { deletedCount: 0 };
+  }
+  
+  static async updateOne(query = {}, update = {}) {
+    console.log('📊 [Mock] TrafficData.updateOne() called with:', { query, update });
+    return { modifiedCount: 0 };
+  }
+  
+  static async countDocuments(query = {}) {
+    console.log('📊 [Mock] TrafficData.countDocuments() called with:', query);
+    return 0;
+  }
+}
 
-module.exports = mongoose.model("TrafficData", trafficSchema);
+// Export the mock
+module.exports = MockTrafficData;
