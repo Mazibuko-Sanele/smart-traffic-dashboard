@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const TrafficEvent = require('../models/TrafficEvent');
+const TrafficEvent = {
+  find: async () => [],
+  aggregate: async () => [],
+  findOne: async () => null,
+  save: async () => {},
+};
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
